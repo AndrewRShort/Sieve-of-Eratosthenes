@@ -1,0 +1,175 @@
+/*
+  Output all prime numbers <= n using the "Sieve of Eratosthenes" algorithm 
+
+  The output is nicely formatted, with columns of numbers that line up.
+
+  Multiple pages of output are handled by asking the user to hit any key
+  before the next page is shown.
+
+  Compile this Jack code with the built-in compiler, or your compiler, 
+  then run the program in the VMEmulator.
+
+  Make sure in the VMEmulator to:
+    (1) set Speed to "Fast"
+    (2) set Animation to "No animation"
+
+  n is limited by the 14k (14336) Hack computer heap size, less other minor heap allocations.
+
+  If you are using the built-in Memory class, you can set n very close to 14k.
+  If you are using your own Memory class, you may have a slightly 
+  lower limit if your heap manager does not implement defragmentation.
+  The code imposes a limit of 14000 which should always work.
+*/
+
+class Main {
+
+    static int SCREEN_COLS;
+
+    function void main() {
+
+	// for keyboard input
+	var boolean ok;
+	var String prompt1, prompt2, prompt3;
+
+	// for determining the primes
+	var Array primes; // array of booleans
+	var int i, n, p;
+
+	// for outputting the results nicely
+	var int maxDigits, numCols, colCount, rowCount;
+	var String delimiter;
+
+	// set static vars
+	let SCREEN_COLS = 64; // number of character columns in the Hack Screen
+
+	// prompt for the value of n from the user
+	let prompt1 = "This will output all primes <= n";
+	let prompt2 = "Please enter the value of n (2 <= n <= 14000): "; 
+
+	let ok = false;
+
+	do Output.printString(prompt1);
+	do Output.println();
+	do Output.println();
+
+	while (~ok) {
+	   let n = Keyboard.readInt(prompt2);
+
+	   if ((n > 1) & (n < 14001)) {
+		let ok = true;
+	   }
+	}
+
+	do prompt1.dispose();
+	do prompt2.dispose();
+	
+	// the array indices 2 to n are prime if the value is true
+	let primes = Array.new(n+1);
+
+	// initialize booleans in array indices 2 to n to all true
+	let i = 2;
+	while (~(i > n)) {
+	    let primes[i] = true;
+	    let i = i + 1;
+	}
+
+	// set non-primes to false
+	let p = 2;
+	while (~((p * p) > n)) {
+	    if (primes[p]) {
+		let i = p * p;
+		while (~(i > n)) {
+		    let primes[i] = false;
+		    let i = i + p;
+		}
+	    }
+	    let p = p + 1;
+	}
+
+        // output the prime numbers in a nice format
+
+	// clear the screen to remove the prompts (and possible multiple illegal inputs)
+	do Screen.clearScreen();
+	do Output.moveCursor(0,0);
+
+	let maxDigits = Main.numDigits(n);
+	let colCount = 1;
+	let rowCount = 1; 
+	let delimiter = " "; // make this more spaces if you want the columns more spread out
+
+	// number of output columns
+	let numCols = (SCREEN_COLS / (maxDigits + delimiter.length())) - 1; 
+
+	// used if there is another page of output
+	let prompt3 = "Press any key to see more...";  
+
+        let i = 2;
+	while (~(i > n)) {
+	    if (primes[i]) {
+
+		// break evenly to next row.  numCols ensures no prime number is split across rows
+		if (colCount > numCols) {
+		    do Output.println();
+		    let colCount = 1;
+		    let rowCount = rowCount + 1;
+		}
+
+		// to avoid wrapping to the top and writing over previous output
+		// user must hit any key to clear screen and see next page of output
+		if (rowCount > 20) { // Hack Screen has 23 character rows, and 20 is a good fit for data and the see more prompt
+
+		    do Output.println();
+		    do Output.printString(prompt3);
+
+		    // wait until a key is pressed down
+        	    while (Keyboard.keyPressed() = 0) {
+			// do nothing but wait
+		    }
+
+		    // wait until key is released
+        	    while (~(Keyboard.keyPressed() = 0)) {
+			// do nothing but wait
+		    }
+
+		    do Screen.clearScreen();
+		    do Output.moveCursor(0,0);
+		    let rowCount = 1;
+		}
+
+		// to get the numbers to line up nicely, pad as appropriate before each number
+		do Output.moveCursor(rowCount - 1, ((colCount-1) * (maxDigits + delimiter.length())) + (maxDigits - Main.numDigits(i)));
+
+		// output the prime number
+		do Output.printInt(i);
+
+		// output the delimiter between prime numbers
+		do Output.printString(delimiter);
+
+		let colCount = colCount + 1;
+	    }
+	    let i = i + 1;
+	}
+
+	// dispose
+	do primes.dispose();	
+	do delimiter.dispose();
+	do prompt3.dispose(); // prompts 1 and 2 are disposed above
+	
+	return;
+    }
+
+    // returns the number of digits in num
+    // this is used to get the numbers to line up nicely.
+    // (it has nothing to do with prime number generation)
+    function int numDigits(int num) {
+
+	var int count;
+
+	let count = 0;
+	while (num > 0) {
+	    let num = num / 10;
+	    let count = count + 1;
+	}
+	return count;
+    }
+} 
